@@ -1,62 +1,617 @@
 <!DOCTYPE html>
 <html lang="en">
-
 <head>
-  <meta charset="utf-8" />
-  <title>PWA Starter</title>
-
-  <base href="/" />
-
-  <!-- This meta viewport ensures the webpage's dimensions change according to the device it's on. This is called Responsive Web Design.-->
-  <meta name="viewport"
-    content="viewport-fit=cover, width=device-width, initial-scale=1.0, minimum-scale=1.0, maximum-scale=5.0" />
-  <meta name="description" content="This is a PWA Starter app" />
-
-  <meta name="theme-color" media="(prefers-color-scheme: dark)" content="#181818" />
-  <meta name="theme-color" media="(prefers-color-scheme: light)" content="#f3f3f3" />
-
-  <!-- These meta tags are Apple-specific, and set the web application to run in full-screen mode with a black status bar. Learn more at https://developer.apple.com/library/archive/documentation/AppleApplications/Reference/SafariHTMLRef/Articles/MetaTags.html-->
-  <meta name="mobile-web-app-capable" content="yes">
-  <meta name="apple-mobile-web-app-title" content="PWA Starter" />
-  <meta name="apple-mobile-web-app-status-bar-style" content="black" />
-
-  <!-- This tag is used by the PWA Starter CLI to identify template projects. Don't remove if you are using the CLI. -->
-  <meta name="pwa-starter-template-identity" content="pwa-starter"/>
-
-  <!-- Imports an icon to represent the document. -->
-  <link rel="icon" href="/assets/icons/icon_24.png" type="image/png" />
-
-  <!-- Imports the manifest to represent the web application. A web app must have a manifest to be a PWA. -->
-  <link rel="manifest" href="manifest.json" />
-
-  <!-- light mode and dark mode CSS -->
-  <link rel="stylesheet" media="(prefers-color-scheme:light)"
-    href="https://cdn.jsdelivr.net/npm/@shoelace-style/shoelace@2.16.0/dist/themes/light.css">
-  <link rel="stylesheet" media="(prefers-color-scheme:dark)"
-    href="https://cdn.jsdelivr.net/npm/@shoelace-style/shoelace@2.16.0/dist/themes/dark.css"
-    onload="document.documentElement.classList.add('sl-theme-dark');">
-
-  <script type="module">
-    import { setBasePath } from '@shoelace-style/shoelace/dist/utilities/base-path.js';
-    setBasePath('https://cdn.jsdelivr.net/npm/@shoelace-style/shoelace@2.16.0/cdn/');
-  </script>
-
-  <script type="module" src="/src/app-index.ts"></script>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>SEO Audit Engine</title>
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=IBM+Plex+Mono:wght@400;600&family=IBM+Plex+Sans:wght@300;400;600&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  :root {
+    --bg: #0a0a0a; --surface: #111111; --border: #222222;
+    --accent: #e8ff00; --accent2: #ff6b35; --text: #e8e8e8;
+    --muted: #666; --success: #00ff88;
+  }
+  body { background: var(--bg); color: var(--text); font-family: 'IBM Plex Sans', sans-serif; min-height: 100vh; overflow-x: hidden; }
+  .grid-bg {
+    position: fixed; inset: 0; z-index: 0;
+    background-image: linear-gradient(rgba(232,255,0,0.03) 1px, transparent 1px), linear-gradient(90deg, rgba(232,255,0,0.03) 1px, transparent 1px);
+    background-size: 40px 40px; pointer-events: none;
+  }
+  .container { position: relative; z-index: 1; max-width: 860px; margin: 0 auto; padding: 40px 24px; }
+  header { margin-bottom: 48px; border-left: 4px solid var(--accent); padding-left: 20px; }
+  .logo { font-family: 'Bebas Neue', sans-serif; font-size: 52px; letter-spacing: 4px; color: var(--accent); line-height: 1; }
+  .logo span { color: var(--accent2); }
+  .tagline { font-family: 'IBM Plex Mono', monospace; font-size: 11px; color: var(--muted); letter-spacing: 3px; text-transform: uppercase; margin-top: 6px; }
+  .version-tag { display: inline-block; background: var(--accent2); color: #000; font-family: 'IBM Plex Mono', monospace; font-size: 9px; letter-spacing: 2px; padding: 2px 8px; margin-top: 8px; }
+  .form-card { background: var(--surface); border: 1px solid var(--border); padding: 32px; margin-bottom: 24px; position: relative; }
+  .form-card::before { content: ''; position: absolute; top: 0; left: 0; right: 0; height: 2px; background: linear-gradient(90deg, var(--accent), var(--accent2), transparent); }
+  .section-label { font-family: 'IBM Plex Mono', monospace; font-size: 10px; letter-spacing: 4px; text-transform: uppercase; color: var(--accent); margin-bottom: 24px; display: flex; align-items: center; gap: 12px; }
+  .section-label::after { content: ''; flex: 1; height: 1px; background: var(--border); }
+  .field-row { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 16px; }
+  .field-row.single { grid-template-columns: 1fr; }
+  .field { display: flex; flex-direction: column; gap: 8px; }
+  label { font-family: 'IBM Plex Mono', monospace; font-size: 10px; letter-spacing: 2px; text-transform: uppercase; color: var(--muted); }
+  input, select { background: var(--bg); border: 1px solid var(--border); color: var(--text); font-family: 'IBM Plex Sans', sans-serif; font-size: 14px; padding: 12px 16px; outline: none; transition: border-color 0.2s; -webkit-appearance: none; }
+  input:focus, select:focus { border-color: var(--accent); }
+  input::placeholder { color: #444; }
+  select option { background: #1a1a1a; }
+  .run-btn { width: 100%; background: var(--accent); color: #000; border: none; font-family: 'Bebas Neue', sans-serif; font-size: 22px; letter-spacing: 4px; padding: 18px; cursor: pointer; transition: all 0.2s; margin-top: 8px; }
+  .run-btn:hover:not(:disabled) { background: var(--accent2); transform: translateY(-1px); }
+  .run-btn:disabled { opacity: 0.5; cursor: not-allowed; transform: none; }
+  .status-bar { display: none; background: var(--surface); border: 1px solid var(--border); border-left: 3px solid var(--accent2); padding: 16px 20px; margin-bottom: 24px; font-family: 'IBM Plex Mono', monospace; font-size: 12px; color: var(--accent2); align-items: center; gap: 12px; }
+  .status-bar.visible { display: flex; }
+  .spinner { width: 16px; height: 16px; border: 2px solid rgba(255,107,53,0.3); border-top-color: var(--accent2); border-radius: 50%; animation: spin 0.8s linear infinite; flex-shrink: 0; }
+  @keyframes spin { to { transform: rotate(360deg); } }
+  .results-card { display: none; background: var(--surface); border: 1px solid var(--border); position: relative; }
+  .results-card.visible { display: block; }
+  .results-card::before { content: ''; position: absolute; top: 0; left: 0; right: 0; height: 2px; background: linear-gradient(90deg, var(--success), var(--accent), transparent); }
+  .results-header { padding: 20px 32px; border-bottom: 1px solid var(--border); }
+  .results-title { font-family: 'IBM Plex Mono', monospace; font-size: 10px; letter-spacing: 4px; text-transform: uppercase; color: var(--success); margin-bottom: 16px; }
+  .download-row { display: flex; gap: 12px; flex-wrap: wrap; }
+  .dl-btn { flex: 1; min-width: 160px; background: transparent; border: 1px solid var(--accent); color: var(--accent); font-family: 'IBM Plex Mono', monospace; font-size: 11px; letter-spacing: 2px; text-transform: uppercase; padding: 12px 20px; cursor: pointer; transition: all 0.2s; text-align: center; }
+  .dl-btn:hover { background: var(--accent); color: #000; }
+  .dl-btn.pdf { border-color: var(--accent2); color: var(--accent2); }
+  .dl-btn.pdf:hover { background: var(--accent2); color: #000; }
+  .results-body { padding: 32px; font-size: 13px; line-height: 1.8; color: #aaa; max-height: 500px; overflow-y: auto; font-family: 'IBM Plex Mono', monospace; }
+  .results-body::-webkit-scrollbar { width: 4px; }
+  .results-body::-webkit-scrollbar-thumb { background: var(--accent); }
+  .result-section { margin-bottom: 20px; }
+  .result-section h3 { font-family: 'Bebas Neue', sans-serif; font-size: 18px; letter-spacing: 2px; color: var(--accent); margin-bottom: 8px; }
+  .result-section p { color: #999; font-size: 12px; }
+  .tag { display: inline-block; padding: 2px 8px; font-size: 10px; letter-spacing: 1px; margin-right: 6px; margin-bottom: 4px; }
+  .tag.high { background: rgba(255,0,0,0.15); color: #ff6666; border: 1px solid rgba(255,0,0,0.3); }
+  .tag.med { background: rgba(255,165,0,0.15); color: #ffaa44; border: 1px solid rgba(255,165,0,0.3); }
+  .tag.low { background: rgba(0,255,100,0.1); color: #44ff88; border: 1px solid rgba(0,255,100,0.2); }
+  .error-card { display: none; background: #1a0a0a; border: 1px solid #ff3333; border-left: 3px solid #ff3333; padding: 16px 20px; font-family: 'IBM Plex Mono', monospace; font-size: 12px; color: #ff6666; margin-bottom: 24px; }
+  .error-card.visible { display: block; }
+  .powered-by { margin-top: 32px; text-align: center; font-family: 'IBM Plex Mono', monospace; font-size: 10px; letter-spacing: 2px; color: #333; text-transform: uppercase; }
+  @media (max-width: 600px) { .field-row { grid-template-columns: 1fr; } .logo { font-size: 38px; } }
+</style>
 </head>
-
 <body>
-  <!-- Our app-index web component. This component is defined in src/pages/app-index.ts-->
-  <app-index></app-index>
+<div class="grid-bg"></div>
+<div class="container">
+  <header>
+    <div class="logo">SEO<span>.</span>AUDIT</div>
+    <div class="tagline">Local Business Intelligence Engine &nbsp;/&nbsp; Powered by AI</div>
+    <div class="version-tag">V7 — STANDALONE + EXCEL + PDF</div>
+  </header>
 
-  <script>
-    if ('serviceWorker' in navigator) {
-      window.onload = () => {
-        navigator.serviceWorker.register(
-          '/sw.js'
-        );
-      }
+  <div class="form-card">
+
+    <div class="section-label">Business Information</div>
+    <div class="field-row">
+      <div class="field"><label>Business Name</label><input type="text" id="bizName" placeholder="e.g. Heauser Hauling" /></div>
+      <div class="field"><label>Website URL</label><input type="text" id="bizURL" placeholder="e.g. heauserhauling.com" /></div>
+    </div>
+    <div class="field-row">
+      <div class="field"><label>Phone Number</label><input type="text" id="bizPhone" placeholder="e.g. (707) 326-4348" /></div>
+      <div class="field"><label>Address</label><input type="text" id="bizAddress" placeholder="e.g. 621 Hendley St, Santa Rosa CA" /></div>
+    </div>
+    <div class="field-row">
+      <div class="field"><label>City / Region</label><input type="text" id="bizLocation" placeholder="e.g. Santa Rosa, CA" /></div>
+      <div class="field"><label>Business Type</label>
+        <select id="bizType">
+          <option value="Hauling / Trailer Transport">Hauling / Trailer Transport</option>
+          <option value="Junk Removal / Cleanup">Junk Removal / Cleanup</option>
+          <option value="Dumpster Rental">Dumpster Rental</option>
+          <option value="Landscaping / Tractor Services">Landscaping / Tractor Services</option>
+          <option value="Plumbing">Plumbing</option>
+          <option value="HVAC">HVAC</option>
+          <option value="Roofing">Roofing</option>
+          <option value="General Contractor">General Contractor</option>
+          <option value="Auto Repair">Auto Repair</option>
+          <option value="Other Local Service Business">Other Local Service Business</option>
+        </select>
+      </div>
+    </div>
+    <div class="field-row single">
+      <div class="field"><label>Website Platform</label>
+        <select id="bizPlatform">
+          <option value="GoDaddy Websites + Marketing">GoDaddy Websites + Marketing</option>
+          <option value="WordPress">WordPress</option>
+          <option value="Wix">Wix</option>
+          <option value="Squarespace">Squarespace</option>
+          <option value="Webflow">Webflow</option>
+          <option value="Custom / Other">Custom / Other</option>
+        </select>
+      </div>
+    </div>
+    <button class="run-btn" id="runBtn" onclick="runAudit()">▶ &nbsp; GENERATE FULL SEO AUDIT + FILES</button>
+  </div>
+
+  <div class="status-bar" id="statusBar">
+    <div class="spinner"></div>
+    <span id="statusText">Initializing deep search...</span>
+  </div>
+
+  <div class="error-card" id="errorCard"></div>
+
+  <div class="results-card" id="resultsCard">
+    <div class="results-header">
+      <div class="results-title">✓ &nbsp; Audit Complete — Files Ready</div>
+      <div class="download-row">
+        <button class="dl-btn" onclick="downloadExcel()">↓ &nbsp; Download Excel Workbook</button>
+        <button class="dl-btn pdf" onclick="downloadPDF()">↓ &nbsp; Download PDF Report</button>
+      </div>
+    </div>
+    <div class="results-body" id="resultsBody"></div>
+  </div>
+
+  <div class="powered-by">Audit Engine &nbsp;<span>///</span>&nbsp; Your prompt. Your product.</div>
+</div>
+
+<script>
+let auditData = null;
+let currentBizName = '';
+
+const statusMessages = [
+  "Fetching live website data...",
+  "Searching Google Business Profile...",
+  "Scanning NAP consistency across directories...",
+  "Analyzing keywords and service pages...",
+  "Running technical SEO audit...",
+  "Checking on-page and off-page signals...",
+  "Assessing local SEO and map pack visibility...",
+  "Compiling issues and generating fixes...",
+  "Building your Excel workbook...",
+  "Generating PDF report..."
+];
+let msgIndex = 0, msgInterval = null;
+function cycleMessages() { msgIndex = (msgIndex + 1) % statusMessages.length; document.getElementById('statusText').textContent = statusMessages[msgIndex]; }
+
+async function runAudit() {
+  const bizName     = document.getElementById('bizName').value.trim();
+  const bizURL      = document.getElementById('bizURL').value.trim();
+  const bizPhone    = document.getElementById('bizPhone').value.trim();
+  const bizAddress  = document.getElementById('bizAddress').value.trim();
+  const bizLocation = document.getElementById('bizLocation').value.trim();
+  const bizType     = document.getElementById('bizType').value;
+  const bizPlatform = document.getElementById('bizPlatform').value;
+
+  if (!bizName || !bizURL || !bizLocation) { showError('Please fill in Business Name, Website URL, and City / Region.'); return; }
+
+  currentBizName = bizName;
+  auditData = null;
+  document.getElementById('errorCard').classList.remove('visible');
+  document.getElementById('resultsCard').classList.remove('visible');
+  document.getElementById('resultsBody').innerHTML = '';
+  document.getElementById('runBtn').disabled = true;
+  document.getElementById('statusBar').classList.add('visible');
+  document.getElementById('statusText').textContent = statusMessages[0];
+  msgIndex = 0;
+  msgInterval = setInterval(cycleMessages, 3500);
+
+  const prompt = buildPrompt(bizName, bizURL, bizPhone, bizAddress, bizLocation, bizType, bizPlatform);
+
+  try {
+    const PROXY_URL = window.PROXY_URL || 'https://seo-audit-proxy.onrender.com/audit';
+    const response = await fetch(PROXY_URL, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        model: 'claude-sonnet-4-20250514',
+        max_tokens: 8000,
+        tools: [{ type: 'web_search_20250305', name: 'web_search' }],
+        messages: [{ role: 'user', content: prompt }]
+      })
+    });
+
+    const data = await response.json();
+    if (!response.ok) throw new Error(data.error?.message || 'API error');
+
+    const rawText = data.content.filter(b => b.type === 'text').map(b => b.text).join('\n');
+    // Extract first complete JSON object using balanced brace matching
+    const firstBrace = rawText.indexOf('{');
+    if (firstBrace === -1) throw new Error('No JSON found in response. Please try again.');
+    let depth = 0, inStr = false, escape = false, endIdx = -1;
+    for (let i = firstBrace; i < rawText.length; i++) {
+      const ch = rawText[i];
+      if (escape) { escape = false; continue; }
+      if (ch === '\\' && inStr) { escape = true; continue; }
+      if (ch === '"') { inStr = !inStr; continue; }
+      if (inStr) continue;
+      if (ch === '{') depth++;
+      else if (ch === '}') { depth--; if (depth === 0) { endIdx = i; break; } }
     }
-  </script>
-</body>
+    if (endIdx === -1) throw new Error('Incomplete JSON in response — please try again.');
+    let jsonStr = rawText.slice(firstBrace, endIdx + 1);
+    try {
+      auditData = JSON.parse(jsonStr);
+    } catch(parseErr) {
+      throw new Error('JSON parse failed: ' + parseErr.message);
+    }
+    auditData.meta = { bizName, bizURL, bizPhone, bizAddress, bizLocation, bizType, bizPlatform, date: new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' }) };
 
+    clearInterval(msgInterval);
+    document.getElementById('statusBar').classList.remove('visible');
+    document.getElementById('runBtn').disabled = false;
+    renderPreview(auditData);
+
+  } catch (err) {
+    clearInterval(msgInterval);
+    document.getElementById('statusBar').classList.remove('visible');
+    document.getElementById('runBtn').disabled = false;
+    showError('Audit failed: ' + err.message);
+  }
+}
+
+function buildPrompt(name, url, phone, address, location, type, platform) {
+  return `The Company I want you to research is ${name}. Website: ${url}. Phone: ${phone || 'find on website'}. Address: ${address || 'find on website'}. Location: ${location}. Business type: ${type}. Website platform: ${platform}.
+
+Research this business thoroughly using web search. Fetch their website. Check their Google Business Profile, Yelp, Facebook, and other directory listings.
+
+Return ONLY a valid JSON object — no preamble, no markdown, no explanation. The JSON must follow this exact schema:
+
+{
+  "sitewide_seo": {
+    "business_name": "",
+    "site_description": "",
+    "address": "",
+    "phone": "",
+    "hours": ""
+  },
+  "pages": [
+    { "name": "Home Page", "url": "", "seo_title": "", "seo_title_chars": 0, "meta_description": "", "meta_chars": 0, "h1": "", "focus_keyword": "" }
+  ],
+  "keywords": [
+    { "phrase": "", "target_page": "", "intent": "", "priority": "HIGH" }
+  ],
+  "image_alts": [
+    { "page": "", "image_description": "", "alt_text": "", "chars": 0 }
+  ],
+  "issues": [
+    { "number": 1, "issue": "", "fix": "", "priority": "HIGH" }
+  ],
+  "gbp_analysis": "",
+  "nap_analysis": "",
+  "reviews_analysis": "",
+  "onpage_seo": "",
+  "offpage_seo": "",
+  "technical_seo": "",
+  "local_seo": "",
+  "blog_ideas": ["", "", "", "", ""],
+  "platform_steps": ""
+}
+
+Rules:
+- pages array must include Home Page plus all pages found on the site
+- keywords array: minimum 8 keyword phrases ranked HIGH/MED/LOW
+- issues array: minimum 5 real issues found, each with a specific actionable fix
+- All SEO titles must be under 60 chars. All meta descriptions under 160 chars.
+- platform_steps: step-by-step instructions specific to ${platform}
+- gbp_analysis, nap_analysis, reviews_analysis, onpage_seo, offpage_seo, technical_seo, local_seo: each 2 sentences maximum, be concise
+- Return ONLY the JSON. Nothing else.`;
+}
+
+function renderPreview(d) {
+  const body = document.getElementById('resultsBody');
+  const issues = (d.issues || []).slice(0, 5).map(i => {
+    const cls = i.priority === 'HIGH' ? 'high' : i.priority === 'MED' ? 'med' : 'low';
+    return `<span class="tag ${cls}">${i.priority}</span> ${i.issue}`;
+  }).join('<br>');
+
+  const keywords = (d.keywords || []).slice(0, 6).map(k => {
+    const cls = k.priority === 'HIGH' ? 'high' : k.priority === 'MED' ? 'med' : 'low';
+    return `<span class="tag ${cls}">${k.priority}</span> ${k.phrase}`;
+  }).join('<br>');
+
+  body.innerHTML = `
+    <div class="result-section"><h3>Issues Found</h3>${issues || 'None found'}</div>
+    <div class="result-section"><h3>Top Keywords</h3>${keywords || 'None found'}</div>
+    <div class="result-section"><h3>GBP Status</h3><p>${d.gbp_analysis || '—'}</p></div>
+    <div class="result-section"><h3>NAP Consistency</h3><p>${d.nap_analysis || '—'}</p></div>
+    <div class="result-section"><h3>Technical SEO</h3><p>${d.technical_seo || '—'}</p></div>
+  `;
+  document.getElementById('resultsCard').classList.add('visible');
+  document.getElementById('resultsCard').scrollIntoView({ behavior: 'smooth', block: 'start' });
+}
+
+// ─── EXCEL EXPORT ───────────────────────────────────────────────
+function downloadExcel() {
+  if (!auditData) return;
+  const d = auditData;
+  const wb = XLSX.utils.book_new();
+  const biz = d.meta;
+  const dateStr = biz.date || new Date().toLocaleDateString();
+
+  // Helper: add sheet
+  function addSheet(name, rows) {
+    const ws = XLSX.utils.aoa_to_sheet(rows);
+    ws['!cols'] = [{ wch: 4 }, { wch: 30 }, { wch: 60 }, { wch: 8 }, { wch: 8 }];
+    XLSX.utils.book_append_sheet(wb, ws, name);
+  }
+
+  // 1. Overview
+  addSheet('📋 Overview', [
+    ['', `${biz.bizName} — SEO Master Workbook`],
+    ['', `${biz.bizURL}  •  ${biz.bizPhone}  •  ${biz.bizAddress}`],
+    ['', `Generated: ${dateStr}  •  Platform: ${biz.bizPlatform}`],
+    [],
+    ['', 'TABS IN THIS WORKBOOK'],
+    ['', '🌐 Site-Wide SEO',     'Enter these fields once in your website platform settings'],
+    ['', '📄 Pages SEO',         'SEO Title + Meta Description for every page'],
+    ['', '🔑 Keyword Strategy',  'Target keywords ranked by priority'],
+    ['', '🖼️ Image Alt Texts',   'Alt text for all images'],
+    ['', '⚠️ Issues Found',      'Problems found + specific fixes'],
+    ['', '📍 Platform Steps',    `Step-by-step instructions for ${biz.bizPlatform}`],
+    ['', '📊 SEO Analysis',      'Full 8-category SEO analysis'],
+    ['', '📝 Blog Ideas',        'Content ideas for local SEO']
+  ]);
+
+  // 2. Site-Wide SEO
+  const sw = d.sitewide_seo || {};
+  addSheet('🌐 Site-Wide SEO', [
+    ['', `🌐 SITE-WIDE SEO SETTINGS — Enter Once in ${biz.bizPlatform}`],
+    [],
+    ['', 'Field', 'Value (copy-paste ready)', 'Chars', 'Limit'],
+    ['', 'Business Name',   sw.business_name   || biz.bizName,     (sw.business_name||biz.bizName).length, 60],
+    ['', 'Site Description',sw.site_description|| '',              (sw.site_description||'').length, 160],
+    ['', 'Address',         sw.address         || biz.bizAddress,  (sw.address||biz.bizAddress||'').length, 100],
+    ['', 'Phone',           sw.phone           || biz.bizPhone,    (sw.phone||biz.bizPhone||'').length, 20],
+    ['', 'Business Hours',  sw.hours           || 'Mon-Sun 7am-7pm','—', '—']
+  ]);
+
+  // 3. Pages SEO
+  const pages = d.pages || [];
+  const pageRows = [
+    ['', '📄 PAGES SEO — Copy Values into Each Page Setting'],
+    [],
+    ['', 'Page', 'SEO Title (60 char max)', 'Chars', 'Meta Description (160 char max)', 'Chars', 'H1 Heading', 'Focus Keyword']
+  ];
+  pages.forEach(p => pageRows.push(['', p.name, p.seo_title, p.seo_title_chars || (p.seo_title||'').length, p.meta_description, p.meta_chars || (p.meta_description||'').length, p.h1, p.focus_keyword]));
+  const wsPages = XLSX.utils.aoa_to_sheet(pageRows);
+  wsPages['!cols'] = [{ wch:3},{wch:22},{wch:55},{wch:6},{wch:65},{wch:6},{wch:50},{wch:35}];
+  XLSX.utils.book_append_sheet(wb, wsPages, '📄 Pages SEO');
+
+  // 4. Keywords
+  const kwRows = [
+    ['', '🔑 KEYWORD STRATEGY'],
+    [],
+    ['', 'Keyword Phrase', 'Target Page', 'Search Intent', 'Priority']
+  ];
+  (d.keywords || []).forEach(k => kwRows.push(['', k.phrase, k.target_page, k.intent, k.priority]));
+  const wsKW = XLSX.utils.aoa_to_sheet(kwRows);
+  wsKW['!cols'] = [{wch:3},{wch:40},{wch:30},{wch:25},{wch:10}];
+  XLSX.utils.book_append_sheet(wb, wsKW, '🔑 Keyword Strategy');
+
+  // 5. Image Alts
+  const altRows = [
+    ['', '🖼️ IMAGE ALT TEXTS'],
+    ['', 'Keep under 125 chars. Include location naturally. Write for humans first.'],
+    [],
+    ['', 'Page', 'Image Description', 'Alt Text to Enter', 'Chars']
+  ];
+  (d.image_alts || []).forEach(a => altRows.push(['', a.page, a.image_description, a.alt_text, a.chars || (a.alt_text||'').length]));
+  const wsAlt = XLSX.utils.aoa_to_sheet(altRows);
+  wsAlt['!cols'] = [{wch:3},{wch:22},{wch:30},{wch:65},{wch:6}];
+  XLSX.utils.book_append_sheet(wb, wsAlt, '🖼️ Image Alt Texts');
+
+  // 6. Issues
+  const issueRows = [
+    ['', '⚠️ ISSUES FOUND — FIXES INCLUDED'],
+    ['', `All issues discovered during live audit of ${biz.bizURL} on ${dateStr}`],
+    [],
+    ['', '#', 'Issue', 'Fix', 'Priority']
+  ];
+  (d.issues || []).forEach(i => issueRows.push(['', i.number, i.issue, i.fix, i.priority]));
+  const wsIssues = XLSX.utils.aoa_to_sheet(issueRows);
+  wsIssues['!cols'] = [{wch:3},{wch:4},{wch:45},{wch:65},{wch:10}];
+  XLSX.utils.book_append_sheet(wb, wsIssues, '⚠️ Issues Found');
+
+  // 7. Platform Steps
+  addSheet('📍 Platform Steps', [
+    ['', `📍 STEP-BY-STEP INSTRUCTIONS — ${biz.bizPlatform.toUpperCase()}`],
+    [],
+    ['', d.platform_steps || 'See your platform documentation for SEO field locations.']
+  ]);
+
+  // 8. SEO Analysis
+  addSheet('📊 SEO Analysis', [
+    ['', '📊 FULL 8-CATEGORY SEO ANALYSIS'],
+    [],
+    ['', '1. GOOGLE BUSINESS PROFILE'],     ['', d.gbp_analysis || '—'],      [],
+    ['', '2. NAP CONSISTENCY'],             ['', d.nap_analysis || '—'],       [],
+    ['', '3. CUSTOMER REVIEWS'],            ['', d.reviews_analysis || '—'],   [],
+    ['', '4. WEBSITE KEYWORDS & PAGES'],    ['', d.onpage_seo || '—'],         [],
+    ['', '5. ON-PAGE SEO'],                 ['', d.onpage_seo || '—'],         [],
+    ['', '6. OFF-PAGE SEO'],                ['', d.offpage_seo || '—'],        [],
+    ['', '7. TECHNICAL SEO'],               ['', d.technical_seo || '—'],      [],
+    ['', '8. LOCAL SEO'],                   ['', d.local_seo || '—']
+  ]);
+
+  // 9. Blog Ideas
+  const blogRows = [['', '📝 BLOG IDEAS FOR LOCAL SEO'], []];
+  (d.blog_ideas || []).forEach((idea, i) => blogRows.push(['', `${i+1}.`, idea]));
+  addSheet('📝 Blog Ideas', blogRows);
+
+  // Save
+  const slug = biz.bizName.replace(/\s+/g, '_');
+  XLSX.writeFile(wb, `${slug}_SEO_Master_Workbook.xlsx`);
+}
+
+// ─── PDF EXPORT ───────────────────────────────────────────────
+function downloadPDF() {
+  if (!auditData) return;
+  const { jsPDF } = window.jspdf;
+  const doc = new jsPDF({ unit: 'pt', format: 'letter' });
+  const d = auditData;
+  const biz = d.meta;
+  const pageW = doc.internal.pageSize.getWidth();
+  const margin = 60;
+  const contentW = pageW - margin * 2;
+  let y = 60;
+
+  function checkPage(needed = 60) {
+    if (y + needed > 740) { doc.addPage(); y = 60; }
+  }
+
+  function heading1(text) {
+    checkPage(50);
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(20);
+    doc.setTextColor(30, 30, 30);
+    doc.text(text, margin, y);
+    y += 28;
+    doc.setDrawColor(200, 200, 200);
+    doc.line(margin, y, pageW - margin, y);
+    y += 16;
+  }
+
+  function heading2(text, color = [50, 50, 50]) {
+    checkPage(40);
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(13);
+    doc.setTextColor(...color);
+    doc.text(text, margin, y);
+    y += 20;
+  }
+
+  function body(text, indent = 0) {
+    if (!text) return;
+    doc.setFont('helvetica', 'normal');
+    doc.setFontSize(10);
+    doc.setTextColor(80, 80, 80);
+    const lines = doc.splitTextToSize(String(text), contentW - indent);
+    lines.forEach(line => { checkPage(16); doc.text(line, margin + indent, y); y += 14; });
+    y += 4;
+  }
+
+  function labelValue(label, value) {
+    checkPage(20);
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(10);
+    doc.setTextColor(40, 40, 40);
+    doc.text(label + ':', margin, y);
+    doc.setFont('helvetica', 'normal');
+    doc.setTextColor(80, 80, 80);
+    const lines = doc.splitTextToSize(String(value || '—'), contentW - 120);
+    doc.text(lines[0], margin + 120, y);
+    y += 16;
+    if (lines.length > 1) { lines.slice(1).forEach(l => { checkPage(16); doc.text(l, margin + 120, y); y += 14; }); }
+  }
+
+  // ── Cover
+  doc.setFillColor(10, 10, 10);
+  doc.rect(0, 0, pageW, 160, 'F');
+  doc.setFont('helvetica', 'bold');
+  doc.setFontSize(32);
+  doc.setTextColor(232, 255, 0);
+  doc.text('SEO AUDIT REPORT', margin, 80);
+  doc.setFontSize(13);
+  doc.setTextColor(255, 107, 53);
+  doc.text(biz.bizName.toUpperCase(), margin, 108);
+  doc.setFontSize(10);
+  doc.setTextColor(150, 150, 150);
+  doc.text(`${biz.bizURL}  •  ${biz.bizPhone}  •  Generated: ${biz.date}`, margin, 130);
+  y = 190;
+
+  // ── Business Info
+  heading1('Business Overview');
+  labelValue('Business Name', biz.bizName);
+  labelValue('Website', biz.bizURL);
+  labelValue('Phone', biz.bizPhone);
+  labelValue('Address', biz.bizAddress);
+  labelValue('Location', biz.bizLocation);
+  labelValue('Type', biz.bizType);
+  labelValue('Platform', biz.bizPlatform);
+  y += 10;
+
+  // ── Issues
+  heading1('Issues Found');
+  (d.issues || []).forEach(i => {
+    checkPage(50);
+    const color = i.priority === 'HIGH' ? [180,30,30] : i.priority === 'MED' ? [180,100,0] : [30,130,60];
+    doc.setFillColor(...color);
+    doc.rect(margin, y - 12, 36, 16, 'F');
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(8);
+    doc.setTextColor(255, 255, 255);
+    doc.text(i.priority, margin + 4, y);
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(10);
+    doc.setTextColor(30, 30, 30);
+    doc.text(`#${i.number} — ${i.issue}`, margin + 44, y);
+    y += 16;
+    body(`FIX: ${i.fix}`, 44);
+    y += 4;
+  });
+
+  // ── 8-Category Analysis
+  heading1('8-Category SEO Analysis');
+  const cats = [
+    ['1. Google Business Profile', d.gbp_analysis],
+    ['2. NAP Consistency',         d.nap_analysis],
+    ['3. Customer Reviews',        d.reviews_analysis],
+    ['4. Website Keywords & Pages',d.onpage_seo],
+    ['5. On-Page SEO',             d.onpage_seo],
+    ['6. Off-Page SEO',            d.offpage_seo],
+    ['7. Technical SEO',           d.technical_seo],
+    ['8. Local SEO',               d.local_seo],
+  ];
+  cats.forEach(([title, text]) => { heading2(title, [30, 80, 160]); body(text); y += 6; });
+
+  // ── Keywords
+  heading1('Keyword Strategy');
+  (d.keywords || []).forEach(k => {
+    checkPage(20);
+    const color = k.priority === 'HIGH' ? [180,30,30] : k.priority === 'MED' ? [180,100,0] : [30,130,60];
+    doc.setFont('helvetica', 'bold'); doc.setFontSize(10); doc.setTextColor(...color);
+    doc.text(`[${k.priority}]`, margin, y);
+    doc.setTextColor(40,40,40);
+    doc.text(`${k.phrase}  —  ${k.target_page}`, margin + 50, y);
+    y += 16;
+  });
+  y += 8;
+
+  // ── Pages SEO
+  heading1('Page SEO Values');
+  (d.pages || []).forEach(p => {
+    checkPage(70);
+    heading2(p.name || 'Page', [50,50,50]);
+    labelValue('SEO Title',        `${p.seo_title} (${p.seo_title_chars || (p.seo_title||'').length} chars)`);
+    labelValue('Meta Description', `${p.meta_description} (${p.meta_chars || (p.meta_description||'').length} chars)`);
+    labelValue('H1',               p.h1);
+    labelValue('Focus Keyword',    p.focus_keyword);
+    y += 6;
+  });
+
+  // ── Platform Steps
+  heading1(`${biz.bizPlatform} Step-by-Step`);
+  body(d.platform_steps);
+  y += 10;
+
+  // ── Blog Ideas
+  heading1('Blog Post Ideas');
+  (d.blog_ideas || []).forEach((idea, i) => { checkPage(20); body(`${i+1}. ${idea}`); });
+
+  // ── Footer on all pages
+  const pageCount = doc.internal.getNumberOfPages();
+  for (let i = 1; i <= pageCount; i++) {
+    doc.setPage(i);
+    doc.setFont('helvetica', 'normal'); doc.setFontSize(8); doc.setTextColor(160,160,160);
+    doc.text(`${biz.bizName} SEO Audit Report  •  Generated ${biz.date}  •  Page ${i} of ${pageCount}`, margin, 760);
+  }
+
+  const slug = biz.bizName.replace(/\s+/g, '_');
+  // Use data URI instead of blob to avoid CSP blocking
+  const pdfBase64 = doc.output('datauristring');
+  const a = document.createElement('a');
+  a.href = pdfBase64;
+  a.download = `${slug}_SEO_Audit_Report.pdf`;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+}
+
+function showError(msg) {
+  const el = document.getElementById('errorCard');
+  el.textContent = '⚠ ' + msg;
+  el.classList.add('visible');
+}
+</script>
+</body>
 </html>
